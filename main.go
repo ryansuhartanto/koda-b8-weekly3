@@ -4,36 +4,18 @@ import (
 	"fmt"
 	"log"
 
-	"charm.land/huh/v2"
-	"charm.land/lipgloss/v2"
+	"github.com/ryansuhartanto/koda-b8-weekly3/form"
 )
 
 func main() {
-	restaurant := lipgloss.NewStyle().
-		Foreground(lipgloss.BrightGreen).
-		Background(lipgloss.Black).
-		Render("Wingstop")
+	var main form.Main
 
-	lipgloss.Printf("Selamat datang di %v!\n", restaurant)
-
-	var (
-		exit bool
-	)
-
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewConfirm().
-				Title("Exit?").
-				Value(&exit),
-		),
-	)
-
-	err := form.Run()
+	err := main.Form().Run()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if !exit {
+	if !main.Exit {
 		fmt.Println("?")
 	}
 
