@@ -5,13 +5,16 @@ import (
 	"log"
 
 	"charm.land/huh/v2"
-	"github.com/fatih/color"
+	"charm.land/lipgloss/v2"
 )
 
 func main() {
-	fmt.Print("Selamat datang di ")
-	color.New(color.BgBlack).Add(color.FgHiGreen).Add(color.Bold).Print("Wingstop")
-	fmt.Println("!")
+	restaurant := lipgloss.NewStyle().
+		Foreground(lipgloss.BrightGreen).
+		Background(lipgloss.Black).
+		Render("Wingstop")
+
+	lipgloss.Printf("Selamat datang di %v!\n", restaurant)
 
 	var (
 		exit bool
