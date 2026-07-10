@@ -6,7 +6,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/ryansuhartanto/koda-b8-weekly3/form"
+	"github.com/ryansuhartanto/koda-b8-weekly3/model"
 )
 
 func main() {
@@ -15,7 +15,7 @@ func main() {
 		Background(lipgloss.Black).
 		Render("Wingstop")
 
-	if _, err := tea.NewProgram(form.NewMain(restaurant)).Run(); err != nil {
+	if _, err := tea.NewProgram(model.NewMain(restaurant)).Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v", err)
 		os.Exit(1)
 	}

@@ -1,4 +1,4 @@
-package form
+package model
 
 import (
 	tea "charm.land/bubbletea/v2"
@@ -8,8 +8,8 @@ import (
 
 type MainModel struct {
 	restaurant string
-	form       *huh.Form
 
+	form    *huh.Form
 	exiting bool
 }
 
@@ -27,6 +27,8 @@ func (m *MainModel) resetForm() {
 					huh.NewOption("Exit", -1),
 				),
 		),
+
+		huh.NewGroup(),
 	)
 }
 
