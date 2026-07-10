@@ -7,9 +7,9 @@ import (
 )
 
 type MainModel struct {
-	restaurant string
+	form *huh.Form
+	Data Data
 
-	form    *huh.Form
 	exiting bool
 }
 
@@ -17,7 +17,7 @@ func (m *MainModel) resetForm() {
 	m.form = huh.NewForm(
 		huh.NewGroup(
 			huh.NewNote().
-				Title(lipgloss.Sprintf("Selamat datang di %v!", m.restaurant)),
+				Title(lipgloss.Sprintf("Selamat datang di %v!", m.Data.Restaurant)),
 			huh.NewSelect[int]().
 				Key("option").
 				Options(
@@ -48,8 +48,8 @@ func (m *MainModel) confirmExit() {
 	)
 }
 
-func NewMain(restaurant string) (m MainModel) {
-	m.restaurant = restaurant
+func NewMain(data Data) (m MainModel) {
+	m.Data = data
 	m.resetForm()
 
 	return

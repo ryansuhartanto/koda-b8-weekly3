@@ -15,13 +15,12 @@ var json string
 
 func main() {
 	data := model.NewData([]byte(json))
-
-	restaurant := lipgloss.NewStyle().
+	data.Restaurant = model.Restaurant(lipgloss.NewStyle().
 		Foreground(lipgloss.BrightGreen).
 		Background(lipgloss.Black).
-		Render(string(data.Restaurant))
+		Render(string(data.Restaurant)))
 
-	if _, err := tea.NewProgram(model.NewMain(restaurant)).Run(); err != nil {
+	if _, err := tea.NewProgram(model.NewMain(data)).Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v", err)
 		os.Exit(1)
 	}
