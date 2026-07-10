@@ -27,8 +27,15 @@ func (m *MainModel) confirmExit() {
 		huh.NewGroup(
 			huh.NewConfirm().
 				Key("exit").
-				Title("Exit?"),
+				Title("Batalkan pesanan?"),
 		),
+		huh.NewGroup(
+			huh.NewNote().
+				Title("Terimakasih telah berkunjung!").
+				Next(true),
+		).WithHideFunc(func() bool {
+			return !m.form.GetBool("exit")
+		}),
 	)
 }
 
@@ -60,7 +67,8 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	} else {
 		exit := m.form.GetBool("exit")
-		if exit || m.form.State == huh.StateAborted {
+		if (m.form.State == huh.StateCompleted && exit) ||
+			m.form.State == huh.StateAborted {
 			cmds = append(cmds, tea.Quit)
 		} else if m.form.State != huh.StateNormal {
 			m.exiting = false
@@ -73,6 +81,8 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m MainModel) View() (v tea.View) {
-	v.SetContent(m.form.View())
+	v.Content = m.form.View()
+	v.AltScreen = true
+
 	return
 }
