@@ -18,6 +18,14 @@ func (m *MainModel) resetForm() {
 		huh.NewGroup(
 			huh.NewNote().
 				Title(lipgloss.Sprintf("Selamat datang di %v!", m.restaurant)),
+			huh.NewSelect[int]().
+				Key("option").
+				Options(
+					huh.NewOption("Pesan", 0),
+					huh.NewOption("Bayar", 1),
+
+					huh.NewOption("Exit", -1),
+				),
 		),
 	)
 }
@@ -29,6 +37,7 @@ func (m *MainModel) confirmExit() {
 				Key("exit").
 				Title("Batalkan pesanan?"),
 		),
+
 		huh.NewGroup(
 			huh.NewNote().
 				Title("Terimakasih telah berkunjung!").
@@ -60,7 +69,11 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if !m.exiting {
-		if m.form.State != huh.StateNormal {
+		option := m.form.GetInt("option")
+		if m.form.State == huh.StateCompleted && option != -1 {
+			m.resetForm()
+			cmds = append(cmds, m.form.Init())
+		} else if m.form.State != huh.StateNormal {
 			m.exiting = true
 			m.confirmExit()
 			cmds = append(cmds, m.form.Init())
