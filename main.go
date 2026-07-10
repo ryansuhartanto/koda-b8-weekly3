@@ -2,21 +2,21 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"os"
 
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/ryansuhartanto/koda-b8-weekly3/form"
 )
 
 func main() {
-	var main form.Main
+	restaurant := lipgloss.NewStyle().
+		Foreground(lipgloss.BrightGreen).
+		Background(lipgloss.Black).
+		Render("Wingstop")
 
-	err := main.Form().Run()
-	if err != nil {
-		log.Fatal(err)
+	if _, err := tea.NewProgram(form.NewMain(restaurant)).Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v", err)
+		os.Exit(1)
 	}
-
-	if !main.Exit {
-		fmt.Println("?")
-	}
-
 }
