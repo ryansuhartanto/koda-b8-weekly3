@@ -27,8 +27,6 @@ func (m *MainModel) resetForm() {
 					huh.NewOption("Exit", -1),
 				),
 		),
-
-		huh.NewGroup(),
 	)
 }
 
