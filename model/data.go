@@ -8,6 +8,14 @@ type Data struct {
 	Options    `json:"options"`
 }
 
+func NewData(data []byte) (d Data) {
+	if err := json.Unmarshal(data, &d); err != nil {
+		panic(err)
+	}
+
+	return
+}
+
 type Restaurant string
 
 type Menu struct {
@@ -31,7 +39,7 @@ type MenuExtra struct {
 	Price int    `json:"price"`
 }
 
-type Options map[string]Option
+type Options map[string][]Option
 
 type Option struct {
 	Name          string
@@ -41,7 +49,7 @@ type Option struct {
 
 func (o *Option) UnmarshalJSON(data []byte) error {
 	var s string
-	if err := json.Unmarshal(data, &s); err == nil {
+	if json.Unmarshal(data, &s) == nil {
 		o.Name, o.HasExtraPrice = s, false
 		return nil
 	}

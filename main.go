@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 
@@ -9,11 +10,16 @@ import (
 	"github.com/ryansuhartanto/koda-b8-weekly3/model"
 )
 
+//go:embed menu.json
+var json string
+
 func main() {
+	data := model.NewData([]byte(json))
+
 	restaurant := lipgloss.NewStyle().
 		Foreground(lipgloss.BrightGreen).
 		Background(lipgloss.Black).
-		Render("Wingstop")
+		Render(string(data.Restaurant))
 
 	if _, err := tea.NewProgram(model.NewMain(restaurant)).Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v", err)

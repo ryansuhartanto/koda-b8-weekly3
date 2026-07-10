@@ -1,0 +1,123 @@
+{
+	"name": "Wingstop",
+	"menu": {
+		"main": [
+			{
+				"name": "Chicken Combo Rice 1",
+				"details": [
+					{
+						"name": "Chicken",
+						"qty": 1
+					},
+					{
+						"name": "Rice",
+						"qty": 1
+					},
+					{
+						"name": "Drink",
+						"qty": 1
+					}
+				],
+				"price": 43000
+			},
+			{
+				"name": "Chicken Combo Rice 2",
+				"details": [
+					{
+						"name": "Chicken",
+						"qty": 2
+					},
+					{
+						"name": "Rice",
+						"qty": 1
+					},
+					{
+						"name": "Drink",
+						"qty": 1
+					}
+				],
+				"price": 62000
+			},
+			{
+				"name": "Chicken Combo Fries 1",
+				"details": [
+					{
+						"name": "Chicken",
+						"qty": 1
+					},
+					{
+						"name": "Fries",
+						"qty": 1
+					},
+					{
+						"name": "Drink",
+						"qty": 1
+					}
+				],
+				"price": 51000
+			},
+			{
+				"name": "Chicken Combo Fries 2",
+				"details": [
+					{
+						"name": "Chicken",
+						"qty": 1
+					},
+					{
+						"name": "Fries",
+						"qty": 1
+					},
+					{
+						"name": "Drink",
+						"qty": 1
+					}
+				],
+				"price": 70000
+			}
+		],
+		"extra": [
+			{
+				"name": "Rice",
+				"price": 13000
+			},
+			{
+				"name": "Fries",
+				"price": 26000
+			},
+			{
+				"name": "Drink",
+				"price": 19000
+			}
+		]
+	},
+	"options": {
+		"Chicken": [
+			"Golden Glitch",
+			"Lemon Pepper",
+			"Louisiana Rub",
+			["Garlic Parmesan", 2000],
+			"Hickory BBQ",
+			"Soga",
+			"Asian Spice",
+			"Mango Habanero",
+			"Red Hot Cajun",
+			"Atomic Blast",
+			"No Flavor"
+		],
+		"Rice": ["Plain Rice", ["Cajun Rice", 4000]],
+		"Drink": [
+			"Coca Cola",
+			"Coca-Cola Zero",
+			"Fanta",
+			"Sprite",
+			"lced Jasmine Tea",
+			"lced Lemon Tea",
+			"lced Green Tea",
+			"lced Blackcurrant",
+			"lced Lemonade",
+			["Iced Milo Original", 4000],
+			"Mineral Water",
+			"Teh Pucuk Harum"
+		]
+	}
+}
