@@ -3,6 +3,9 @@ package model
 import (
 	"strings"
 	"testing"
+
+	"charm.land/huh/v2"
+	"charm.land/lipgloss/v2"
 )
 
 const stubJSON = `{
@@ -43,7 +46,6 @@ func TestNewData(t *testing.T) {
 	}
 }
 
-// Options are either a bare string or a ["name", surcharge] tuple.
 func TestOptionUnmarshal(t *testing.T) {
 	opts := NewData([]byte(stubJSON)).Options["Chicken"]
 
@@ -60,7 +62,7 @@ func TestOptionUnmarshal(t *testing.T) {
 }
 
 func TestOrder(t *testing.T) {
-	m := NewOrder()
+	var m OrderModel
 	if m.Any() {
 		t.Error("new order should be empty")
 	}
@@ -88,8 +90,6 @@ func TestOrder(t *testing.T) {
 	}
 }
 
-// huh v2.0.3 hides the last option of a titled multi-select unless an explicit
-// height is set; optionsForm compensates, so assert every option is rendered.
 func TestOptionsFormShowsEveryOption(t *testing.T) {
 	m := NewMain(NewData([]byte(stubJSON)))
 	m.item = 0
@@ -104,5 +104,77 @@ func TestOptionsFormShowsEveryOption(t *testing.T) {
 		if !strings.Contains(view, want) {
 			t.Errorf("option %q not visible in:\n%s", want, view)
 		}
+	}
+}
+
+func TestOrderViewRendersItems(t *testing.T) {
+	var m OrderModel
+	if got := m.View(0); !strings.Contains(got, "Pesanan anda masih kosong!") {
+		t.Errorf("empty order view missing placeholder:\n%s", got)
+	}
+
+	m.Add(OrderItem{Name: "Combo A", Price: 43000, Details: []OrderDetail{
+		{Name: "Chicken", Qty: 2, Option: []string{"Lemon Pepper", "Soga"}},
+		{Name: "Rice", Qty: 1, Option: []string{"Plain Rice"}},
+	}})
+	m.Add(OrderItem{Name: "Combo B", Price: 70000, Details: []OrderDetail{
+		{Name: "Fries", Qty: 1},
+	}})
+
+	view := m.View(0)
+	for _, want := range []string{
+		"Combo A", "Chicken", "Lemon Pepper", "43000",
+		"Combo B", "Fries", "70000",
+	} {
+		if !strings.Contains(view, want) {
+			t.Errorf("order view missing %q:\n%s", want, view)
+		}
+	}
+
+	if got := strings.Count(view, "┌"); got != 1 {
+		t.Errorf("order view has %d tables, want 1 combined:\n%s", got, view)
+	}
+	if !strings.Contains(view, "Chicken 2 ") || !strings.Contains(view, " + ") {
+		t.Errorf("order view does not join details into one cell:\n%s", view)
+	}
+}
+
+func TestOrderViewRespectsWidth(t *testing.T) {
+	var m OrderModel
+	m.Add(OrderItem{Name: "Chicken Combo Rice 1", Price: 43000, Details: []OrderDetail{
+		{Name: "Chicken", Qty: 1, Option: []string{"Golden Glitch"}},
+		{Name: "Rice", Qty: 1, Option: []string{"Plain Rice"}},
+		{Name: "Drink", Qty: 1, Option: []string{"Coca Cola"}},
+	}})
+
+	const width = 60
+	for _, line := range strings.Split(m.View(width), "\n") {
+		if got := lipgloss.Width(line); got > width {
+			t.Errorf("line is %d cols, want <= %d:\n%s", got, width, line)
+		}
+	}
+}
+
+func TestNoteChromeMatchesHuh(t *testing.T) {
+	const formWidth = 79
+
+	render := func(s string) string {
+		f := huh.NewForm(huh.NewGroup(
+			huh.NewNote().Title("T").Description(s),
+			huh.NewSelect[int]().Key("o").Options(huh.NewOption("Pesan", 0)),
+		)).WithWidth(formWidth).WithHeight(23)
+		f.Init()
+		f.Update(nil)
+		return f.View()
+	}
+
+	fits := strings.Repeat("X", formWidth-noteChrome)
+	if !strings.Contains(render(fits), fits) {
+		t.Errorf("%d cols wrapped inside a note; noteChrome is too small", len(fits))
+	}
+
+	over := strings.Repeat("X", formWidth-noteChrome+1)
+	if strings.Contains(render(over), over) {
+		t.Errorf("%d cols fit inside a note; noteChrome is too large", len(over))
 	}
 }
