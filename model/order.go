@@ -4,8 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	tea "charm.land/bubbletea/v2"
-	"charm.land/huh/v2"
+	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/table"
 )
 
@@ -21,57 +20,31 @@ type OrderItem struct {
 	Price   int
 }
 
-func (item OrderItem) Note() *huh.Note {
-	t := table.New().Headers("Detail", "Qty", "Opsi")
-	for _, detail := range item.Details {
-		t.Row(detail.Name, strconv.Itoa(detail.Qty), strings.Join(detail.Option, ", "))
+func (detail OrderDetail) View() string {
+	s := detail.Name + " " + strconv.Itoa(detail.Qty)
+	if len(detail.Option) > 0 {
+		s += " " + lipgloss.NewStyle().Faint(true).
+			Render("("+strings.Join(detail.Option, ", ")+")")
 	}
 
-	return huh.NewNote().
-		Title(item.Name).
-		Description(t.Render() + "\nHarga: " + strconv.Itoa(item.Price))
+	return s
+}
+
+func (item OrderItem) View() string {
+	details := make([]string, len(item.Details))
+	for i, detail := range item.Details {
+		details[i] = detail.View()
+	}
+
+	return strings.Join(details, " + ")
 }
 
 type OrderModel struct {
-	form *huh.Form
-
 	Items []OrderItem
-}
-
-func (m *OrderModel) resetForm() {
-	if !m.Any() {
-		m.form = huh.NewForm(
-			huh.NewGroup(
-				huh.NewNote().
-					Title("Pesanan anda masih kosong!").
-					Description("Silahkan pesan di menu utama."),
-			).WithShowHelp(false),
-		)
-
-		return
-	}
-
-	fields := make([]huh.Field, len(m.Items))
-	for i, item := range m.Items {
-		fields[i] = item.Note()
-	}
-
-	m.form = huh.NewForm(
-		huh.NewGroup(fields...).
-			Title("Pesanan:").
-			WithShowHelp(false),
-	)
-}
-
-func NewOrder() (m OrderModel) {
-	m.resetForm()
-
-	return
 }
 
 func (m *OrderModel) Add(item OrderItem) {
 	m.Items = append(m.Items, item)
-	m.resetForm()
 }
 
 func (m OrderModel) Any() bool {
@@ -86,16 +59,24 @@ func (m OrderModel) Total() (total int) {
 	return
 }
 
-func (m OrderModel) Init() tea.Cmd {
-	return nil
-}
+func (m OrderModel) View(width int) string {
+	if !m.Any() {
+		return lipgloss.JoinVertical(lipgloss.Left,
+			lipgloss.NewStyle().Bold(true).Render("Pesanan anda masih kosong!"),
+			lipgloss.NewStyle().Faint(true).Render("Silahkan pesan di menu utama."),
+		)
+	}
 
-func (m OrderModel) Update(_ tea.Msg) (tea.Model, tea.Cmd) {
-	return m, nil
-}
+	t := table.New().Headers("Menu", "Detail", "Harga")
+	if width > 0 {
+		t.Width(width)
+	}
+	for _, item := range m.Items {
+		t.Row(item.Name, item.View(), strconv.Itoa(item.Price))
+	}
 
-func (m OrderModel) View() (v tea.View) {
-	v.Content = m.form.View()
-
-	return
+	return lipgloss.JoinVertical(lipgloss.Left,
+		lipgloss.NewStyle().Bold(true).Render("Pesanan:"),
+		t.Render(),
+	)
 }

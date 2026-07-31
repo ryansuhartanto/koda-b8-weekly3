@@ -10,6 +10,8 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
+const noteChrome = 2
+
 type state int
 
 const (
@@ -31,9 +33,6 @@ type MainModel struct {
 	width, height int
 }
 
-// setForm applies the last known window size, which only the initial form would
-// otherwise receive: bubbletea sends WindowSizeMsg on resize, not on every form
-// swap.
 func (m *MainModel) setForm(form *huh.Form) {
 	if m.width > 0 {
 		form = form.WithWidth(m.width).WithHeight(m.height)
@@ -50,7 +49,7 @@ func (m *MainModel) resetForm() {
 			huh.NewNote().
 				Title(lipgloss.Sprintf("Selamat datang di %v!", m.Data.Restaurant)).
 				DescriptionFunc(func() string {
-					return m.order.View().Content
+					return m.order.View(m.width - noteChrome)
 				}, m.order.Items),
 			huh.NewSelect[int]().
 				Key("option").
@@ -109,10 +108,6 @@ func (m *MainModel) optionsForm() bool {
 				Key(detailKey(index)).
 				Title(fmt.Sprintf("Pilih opsi untuk %s", detail.Name)).
 				Options(choices...).
-				// huh v2.0.3 subtracts the title height from the viewport even
-				// when it derived that height from the options alone, hiding the
-				// last option. Pass the total height (options + title) instead.
-				// Upstream fix: patches/huh-v2.0.3-multiselect-height.patch
 				Height(len(choices)+1).
 				Limit(qty).
 				Validate(func(selected []string) error {
@@ -222,7 +217,6 @@ func detailKey(detail int) string {
 
 func NewMain(data Data) (m MainModel) {
 	m.Data = data
-	m.order = NewOrder()
 	m.resetForm()
 
 	return
