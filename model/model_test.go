@@ -1,6 +1,9 @@
 package model
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 const stubJSON = `{
 	"name": "Test Restaurant",
@@ -82,5 +85,24 @@ func TestOrder(t *testing.T) {
 	m.Add(a)
 	if total := m.Total(); total != 156000 {
 		t.Errorf("Total() = %d, want 156000", total)
+	}
+}
+
+// huh v2.0.3 hides the last option of a titled multi-select unless an explicit
+// height is set; optionsForm compensates, so assert every option is rendered.
+func TestOptionsFormShowsEveryOption(t *testing.T) {
+	m := NewMain(NewData([]byte(stubJSON)))
+	m.item = 0
+	if !m.optionsForm() {
+		t.Fatal("optionsForm() = false, want true")
+	}
+	m.form.Init()
+	m.form.Update(nil)
+
+	view := m.form.View()
+	for _, want := range []string{"Lemon Pepper", "Garlic Parmesan"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("option %q not visible in:\n%s", want, view)
+		}
 	}
 }
