@@ -11,10 +11,10 @@ import (
 )
 
 //go:embed menu.json
-var json string
+var menuJSON []byte
 
 func main() {
-	data := model.NewData([]byte(json))
+	data := model.NewData(menuJSON)
 	data.Restaurant = model.Restaurant(lipgloss.NewStyle().
 		Foreground(lipgloss.BrightGreen).
 		Background(lipgloss.Black).
