@@ -32,14 +32,14 @@ func TestNewData(t *testing.T) {
 	if d.Restaurant != "Test Restaurant" {
 		t.Errorf("Restaurant = %q, want %q", d.Restaurant, "Test Restaurant")
 	}
-	if len(d.Menu.Main) != 1 || d.Menu.Main[0].Price != 40000 {
-		t.Errorf("Menu.Main = %+v", d.Menu.Main)
+	if len(d.Main) != 1 || d.Main[0].Price != 40000 {
+		t.Errorf("Menu.Main = %+v", d.Main)
 	}
-	if len(d.Menu.Main[0].Details) != 2 || d.Menu.Main[0].Details[0].Qty != 1 {
-		t.Errorf("Details = %+v", d.Menu.Main[0].Details)
+	if len(d.Main[0].Details) != 2 || d.Main[0].Details[0].Qty != 1 {
+		t.Errorf("Details = %+v", d.Main[0].Details)
 	}
-	if len(d.Menu.Extra) != 1 || d.Menu.Extra[0].Name != "Rice" {
-		t.Errorf("Menu.Extra = %+v", d.Menu.Extra)
+	if len(d.Extra) != 1 || d.Extra[0].Name != "Rice" {
+		t.Errorf("Menu.Extra = %+v", d.Extra)
 	}
 	if _, ok := d.Options["Rice"]; ok {
 		t.Error("Options[Rice] should be absent")

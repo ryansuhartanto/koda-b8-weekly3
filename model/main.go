@@ -72,8 +72,8 @@ func (m *MainModel) resetForm() {
 func (m *MainModel) itemForm() {
 	m.state = stateItem
 
-	options := make([]huh.Option[int], len(m.Data.Menu.Main))
-	for i, item := range m.Data.Menu.Main {
+	options := make([]huh.Option[int], len(m.Data.Main))
+	for i, item := range m.Data.Main {
 		options[i] = huh.NewOption(item.Name, i)
 	}
 
@@ -88,7 +88,7 @@ func (m *MainModel) itemForm() {
 }
 
 func (m *MainModel) optionsForm() bool {
-	menu := m.Data.Menu.Main[m.item]
+	menu := m.Data.Main[m.item]
 
 	var groups []*huh.Group
 	for index, detail := range menu.Details {
@@ -192,7 +192,7 @@ func (m *MainModel) confirmExit() {
 }
 
 func (m MainModel) selectedItem() OrderItem {
-	menu := m.Data.Menu.Main[m.item]
+	menu := m.Data.Main[m.item]
 
 	item := OrderItem{
 		Name:    menu.Name,
