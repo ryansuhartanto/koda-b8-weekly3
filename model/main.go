@@ -25,15 +25,27 @@ type MainModel struct {
 	form *huh.Form
 	Data Data
 
-	state state
-	order OrderModel
-	item  int
+	state         state
+	order         OrderModel
+	item          int
+	width, height int
+}
+
+// setForm applies the last known window size, which only the initial form would
+// otherwise receive: bubbletea sends WindowSizeMsg on resize, not on every form
+// swap.
+func (m *MainModel) setForm(form *huh.Form) {
+	if m.width > 0 {
+		form = form.WithWidth(m.width).WithHeight(m.height)
+	}
+
+	m.form = form
 }
 
 func (m *MainModel) resetForm() {
 	m.state = stateMenu
 
-	m.form = huh.NewForm(
+	m.setForm(huh.NewForm(
 		huh.NewGroup(
 			huh.NewNote().
 				Title(lipgloss.Sprintf("Selamat datang di %v!", m.Data.Restaurant)).
@@ -55,7 +67,7 @@ func (m *MainModel) resetForm() {
 					return nil
 				}),
 		),
-	)
+	))
 }
 
 func (m *MainModel) itemForm() {
@@ -66,14 +78,14 @@ func (m *MainModel) itemForm() {
 		options[i] = huh.NewOption(item.Name, i)
 	}
 
-	m.form = huh.NewForm(
+	m.setForm(huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[int]().
 				Key("item").
 				Title("Silahkan pilih menu utama kami").
 				Options(options...),
 		),
-	)
+	))
 }
 
 func (m *MainModel) optionsForm() bool {
@@ -97,6 +109,10 @@ func (m *MainModel) optionsForm() bool {
 				Key(detailKey(index)).
 				Title(fmt.Sprintf("Pilih opsi untuk %s", detail.Name)).
 				Options(choices...).
+				// huh v2.0.3 subtracts the title height from the viewport even
+				// when it derived that height from the options alone, hiding the
+				// last option. Pass the total height (options + title) instead.
+				Height(len(choices)+1).
 				Limit(qty).
 				Validate(func(selected []string) error {
 					if len(selected) != qty {
@@ -112,7 +128,7 @@ func (m *MainModel) optionsForm() bool {
 	}
 
 	m.state = stateOptions
-	m.form = huh.NewForm(groups...)
+	m.setForm(huh.NewForm(groups...))
 
 	return true
 }
@@ -121,7 +137,7 @@ func (m *MainModel) paymentForm() {
 	m.state = statePayment
 	total := m.order.Total()
 
-	m.form = huh.NewForm(
+	m.setForm(huh.NewForm(
 		huh.NewGroup(
 			huh.NewNote().
 				Title(lipgloss.Sprintf(
@@ -143,26 +159,26 @@ func (m *MainModel) paymentForm() {
 					return nil
 				}),
 		),
-	)
+	))
 }
 
 func (m *MainModel) doneForm(change int) {
 	m.state = stateDone
 
-	m.form = huh.NewForm(
+	m.setForm(huh.NewForm(
 		huh.NewGroup(
 			huh.NewNote().
 				Title(fmt.Sprintf("Kembalian anda:\n%d", change)).
 				Description("Terimakasih telah berkunjung!").
 				Next(true),
 		),
-	)
+	))
 }
 
 func (m *MainModel) confirmExit() {
 	m.state = stateExit
 
-	m.form = huh.NewForm(
+	m.setForm(huh.NewForm(
 		huh.NewGroup(
 			huh.NewConfirm().
 				Key("exit").
@@ -176,7 +192,7 @@ func (m *MainModel) confirmExit() {
 		).WithHideFunc(func() bool {
 			return !m.form.GetBool("exit")
 		}),
-	)
+	))
 }
 
 func (m MainModel) selectedItem() OrderItem {
@@ -218,7 +234,8 @@ func (m MainModel) Init() tea.Cmd {
 func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.form = m.form.WithWidth(msg.Width - 1).WithHeight(msg.Height - 1)
+		m.width, m.height = msg.Width-1, msg.Height-1
+		m.setForm(m.form)
 		return m, nil
 	}
 
