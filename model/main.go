@@ -112,6 +112,7 @@ func (m *MainModel) optionsForm() bool {
 				// huh v2.0.3 subtracts the title height from the viewport even
 				// when it derived that height from the options alone, hiding the
 				// last option. Pass the total height (options + title) instead.
+				// Upstream fix: patches/huh-v2.0.3-multiselect-height.patch
 				Height(len(choices)+1).
 				Limit(qty).
 				Validate(func(selected []string) error {

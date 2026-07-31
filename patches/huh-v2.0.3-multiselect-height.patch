@@ -1,0 +1,99 @@
+From 495f35e915f175abf9be3b3e0b20992071d67d9b Mon Sep 17 00:00:00 2001
+From: Ryan Suhartanto <ryan.repeats@gmail.com>
+Date: Fri, 31 Jul 2026 14:41:15 +0700
+Subject: [PATCH] fix: show every option in a titled multi-select
+
+---
+ field_multiselect.go       | 12 +++++----
+ zz_viewport_height_test.go | 50 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 57 insertions(+), 5 deletions(-)
+ create mode 100644 zz_viewport_height_test.go
+
+diff --git a/field_multiselect.go b/field_multiselect.go
+index 70ac298..26d1716 100644
+--- a/field_multiselect.go
++++ b/field_multiselect.go
+@@ -501,17 +501,19 @@ func (m *MultiSelect[T]) updateViewportSize() {
+ 		yoffset += lipgloss.Height(ss)
+ 	}
+ 	v, _, _ := m.optionsView()
+-	height := m.height
+-	if height <= 0 {
+-		height = lipgloss.Height(v)
+-	}
+ 	width := m.width
+ 	if m.width <= 0 {
+ 		width = lipgloss.Width(v)
+ 	}
+ 
+ 	m.viewport.SetWidth(width)
+-	m.viewport.SetHeight(max(minHeight, height) - yoffset)
++	if m.height <= 0 {
++		// Without an explicit height, size the viewport to the options. They are
++		// rendered without the title and description, so yoffset does not apply.
++		m.viewport.SetHeight(lipgloss.Height(v))
++		return
++	}
++	m.viewport.SetHeight(max(minHeight, m.height-yoffset))
+ }
+ 
+ // numSelected returns the total number of selected options.
+diff --git a/zz_viewport_height_test.go b/zz_viewport_height_test.go
+new file mode 100644
+index 0000000..ddd7ed2
+--- /dev/null
++++ b/zz_viewport_height_test.go
+@@ -0,0 +1,50 @@
++package huh
++
++import "testing"
++
++func TestMultiSelectWithoutHeightShowsEveryOption(t *testing.T) {
++	f := NewMultiSelect[string]().
++		Title("Pick many").
++		Options(
++			NewOption("Option 1", "1"),
++			NewOption("Option 2", "2"),
++			NewOption("Option 3", "3"),
++		)
++
++	if got, want := f.viewport.Height(), 3; got != want {
++		t.Fatalf("viewport height = %d, want %d", got, want)
++	}
++}
++
++// A title-less field has no yoffset, so it was unaffected by the title being
++// subtracted from an options-derived height.
++func TestMultiSelectWithoutHeightMatchesSelect(t *testing.T) {
++	opts := func() []Option[string] {
++		return []Option[string]{
++			NewOption("Option 1", "1"),
++			NewOption("Option 2", "2"),
++		}
++	}
++
++	ms := NewMultiSelect[string]().Title("Pick many").Options(opts()...)
++	s := NewSelect[string]().Title("Pick one").Options(opts()...)
++
++	if got, want := ms.viewport.Height(), s.viewport.Height(); got != want {
++		t.Fatalf("multi-select viewport height = %d, select = %d", got, want)
++	}
++}
++
++func TestMultiSelectWithHeightReservesTitle(t *testing.T) {
++	f := NewMultiSelect[string]().
++		Title("Pick many").
++		Options(
++			NewOption("Option 1", "1"),
++			NewOption("Option 2", "2"),
++			NewOption("Option 3", "3"),
++		).
++		Height(3)
++
++	if got, want := f.viewport.Height(), 2; got != want {
++		t.Fatalf("viewport height = %d, want %d", got, want)
++	}
++}
+-- 
+2.55.0
+
