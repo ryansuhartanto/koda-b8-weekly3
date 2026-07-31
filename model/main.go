@@ -1,23 +1,45 @@
 package model
 
 import (
+	"errors"
+	"fmt"
+	"strconv"
+
 	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
+)
+
+type state int
+
+const (
+	stateMenu state = iota
+	stateItem
+	stateOptions
+	statePayment
+	stateDone
+	stateExit
 )
 
 type MainModel struct {
 	form *huh.Form
 	Data Data
 
-	exiting bool
+	state state
+	order OrderModel
+	item  int
 }
 
 func (m *MainModel) resetForm() {
+	m.state = stateMenu
+
 	m.form = huh.NewForm(
 		huh.NewGroup(
 			huh.NewNote().
-				Title(lipgloss.Sprintf("Selamat datang di %v!", m.Data.Restaurant)),
+				Title(lipgloss.Sprintf("Selamat datang di %v!", m.Data.Restaurant)).
+				DescriptionFunc(func() string {
+					return m.order.View().Content
+				}, m.order.Items),
 			huh.NewSelect[int]().
 				Key("option").
 				Options(
@@ -25,12 +47,121 @@ func (m *MainModel) resetForm() {
 					huh.NewOption("Bayar", 1),
 
 					huh.NewOption("Exit", -1),
-				),
+				).
+				Validate(func(option int) error {
+					if option == 1 && !m.order.Any() {
+						return errors.New("pesanan masih kosong")
+					}
+					return nil
+				}),
+		),
+	)
+}
+
+func (m *MainModel) itemForm() {
+	m.state = stateItem
+
+	options := make([]huh.Option[int], len(m.Data.Menu.Main))
+	for i, item := range m.Data.Menu.Main {
+		options[i] = huh.NewOption(item.Name, i)
+	}
+
+	m.form = huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[int]().
+				Key("item").
+				Title("Silahkan pilih menu utama kami").
+				Options(options...),
+		),
+	)
+}
+
+func (m *MainModel) optionsForm() bool {
+	menu := m.Data.Menu.Main[m.item]
+
+	var groups []*huh.Group
+	for index, detail := range menu.Details {
+		options, ok := m.Data.Options[detail.Name]
+		if !ok {
+			continue
+		}
+
+		choices := make([]huh.Option[string], len(options))
+		for k, option := range options {
+			choices[k] = huh.NewOption(option.Name, option.Name)
+		}
+
+		qty := detail.Qty
+		groups = append(groups, huh.NewGroup(
+			huh.NewMultiSelect[string]().
+				Key(detailKey(index)).
+				Title(fmt.Sprintf("Pilih opsi untuk %s", detail.Name)).
+				Options(choices...).
+				Limit(qty).
+				Validate(func(selected []string) error {
+					if len(selected) != qty {
+						return fmt.Errorf("pilih %d opsi", qty)
+					}
+					return nil
+				}),
+		))
+	}
+
+	if len(groups) == 0 {
+		return false
+	}
+
+	m.state = stateOptions
+	m.form = huh.NewForm(groups...)
+
+	return true
+}
+
+func (m *MainModel) paymentForm() {
+	m.state = statePayment
+	total := m.order.Total()
+
+	m.form = huh.NewForm(
+		huh.NewGroup(
+			huh.NewNote().
+				Title(lipgloss.Sprintf(
+					"Total harga %s:\n%d",
+					lipgloss.NewStyle().Faint(true).Render("(sudah termasuk PPn)"),
+					total,
+				)),
+			huh.NewInput().
+				Key("payment").
+				Title("Silahkan bayar").
+				Validate(func(s string) error {
+					paid, err := strconv.Atoi(s)
+					if err != nil {
+						return errors.New("masukkan angka")
+					}
+					if paid < total {
+						return errors.New("uang anda kurang")
+					}
+					return nil
+				}),
+		),
+	)
+}
+
+func (m *MainModel) doneForm(change int) {
+	m.state = stateDone
+
+	m.form = huh.NewForm(
+		huh.NewGroup(
+			huh.NewNote().
+				Title(fmt.Sprintf("Kembalian anda:\n%d", change)).
+				Description("Terimakasih telah berkunjung!").
+				Next(true),
 		),
 	)
 }
 
 func (m *MainModel) confirmExit() {
+	m.state = stateExit
+
 	m.form = huh.NewForm(
 		huh.NewGroup(
 			huh.NewConfirm().
@@ -48,8 +179,33 @@ func (m *MainModel) confirmExit() {
 	)
 }
 
+func (m MainModel) selectedItem() OrderItem {
+	menu := m.Data.Menu.Main[m.item]
+
+	item := OrderItem{
+		Name:    menu.Name,
+		Details: make([]OrderDetail, len(menu.Details)),
+		Price:   menu.Price,
+	}
+	for j, detail := range menu.Details {
+		option, _ := m.form.Get(detailKey(j)).([]string)
+		item.Details[j] = OrderDetail{
+			Name:   detail.Name,
+			Qty:    detail.Qty,
+			Option: option,
+		}
+	}
+
+	return item
+}
+
+func detailKey(detail int) string {
+	return fmt.Sprintf("detail%d", detail)
+}
+
 func NewMain(data Data) (m MainModel) {
 	m.Data = data
+	m.order = NewOrder()
 	m.resetForm()
 
 	return
@@ -60,6 +216,12 @@ func (m MainModel) Init() tea.Cmd {
 }
 
 func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.form = m.form.WithWidth(msg.Width - 1).WithHeight(msg.Height - 1)
+		return m, nil
+	}
+
 	var cmds []tea.Cmd
 
 	form, cmd := m.form.Update(msg)
@@ -68,23 +230,67 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	if !m.exiting {
-		option := m.form.GetInt("option")
-		if m.form.State == huh.StateCompleted && option != -1 {
-			m.resetForm()
+	switch m.state {
+	case stateMenu:
+		if m.form.State == huh.StateCompleted {
+			switch m.form.GetInt("option") {
+			case 0:
+				m.itemForm()
+			case 1:
+				m.paymentForm()
+			default:
+				m.confirmExit()
+			}
 			cmds = append(cmds, m.form.Init())
 		} else if m.form.State != huh.StateNormal {
-			m.exiting = true
 			m.confirmExit()
 			cmds = append(cmds, m.form.Init())
 		}
-	} else {
+
+	case stateItem:
+		if m.form.State == huh.StateCompleted {
+			m.item = m.form.GetInt("item")
+			if !m.optionsForm() {
+				m.order.Add(m.selectedItem())
+				m.resetForm()
+			}
+			cmds = append(cmds, m.form.Init())
+		} else if m.form.State != huh.StateNormal {
+			m.resetForm()
+			cmds = append(cmds, m.form.Init())
+		}
+
+	case stateOptions:
+		if m.form.State == huh.StateCompleted {
+			m.order.Add(m.selectedItem())
+			m.resetForm()
+			cmds = append(cmds, m.form.Init())
+		} else if m.form.State != huh.StateNormal {
+			m.resetForm()
+			cmds = append(cmds, m.form.Init())
+		}
+
+	case statePayment:
+		if m.form.State == huh.StateCompleted {
+			paid, _ := strconv.Atoi(m.form.GetString("payment"))
+			m.doneForm(paid - m.order.Total())
+			cmds = append(cmds, m.form.Init())
+		} else if m.form.State != huh.StateNormal {
+			m.resetForm()
+			cmds = append(cmds, m.form.Init())
+		}
+
+	case stateDone:
+		if m.form.State != huh.StateNormal {
+			cmds = append(cmds, tea.Quit)
+		}
+
+	case stateExit:
 		exit := m.form.GetBool("exit")
 		if (m.form.State == huh.StateCompleted && exit) ||
 			m.form.State == huh.StateAborted {
 			cmds = append(cmds, tea.Quit)
 		} else if m.form.State != huh.StateNormal {
-			m.exiting = false
 			m.resetForm()
 			cmds = append(cmds, m.form.Init())
 		}
@@ -94,8 +300,8 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m MainModel) View() (v tea.View) {
-	v.Content = m.form.View()
 	v.AltScreen = true
+	v.Content = m.form.View()
 
 	return
 }
